@@ -80,7 +80,7 @@ typings/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
+# dist
 
 # Gatsby files
 .cache/
@@ -102,3 +102,20 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# VSCode project configuration
+.vscode
+
+# VSCode workspace file
+*.code-workspace
+
+# macOS files
+.DS_Store
+
+# end of github suggested gitignore
+
+# project specific
+out
