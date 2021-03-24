@@ -135,6 +135,7 @@ async function main(): Promise<void> {
         const payload = JSON.stringify(github.context.payload, null, 4);
         console.log('payload:', payload);
     } catch (error) {
+        console.warn(error);
         core.setFailed((error as Error).message);
     }
 }
