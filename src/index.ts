@@ -64,6 +64,7 @@ async function main(): Promise<void> {
             throw new Error(`Base version: ${baseVersion}, is invalid.`);
         }
 
+        const isPrerelease = versionLevel === 'prerelease' || !!preId;
         let releaseType: semver.ReleaseType;
 
         switch (versionLevel) {
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
         core.setOutput('base-version', baseVersion);
         core.setOutput('head-branch', headBranch);
         core.setOutput('head-version', newVersion);
+        core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
         // Get the JSON webhook payload for the event that triggered the workflow
         const payload = JSON.stringify(github.context.payload, null, 4);
         console.log('payload:', payload);
