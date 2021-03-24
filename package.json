@@ -1,6 +1,6 @@
 {
   "name": "github-actions-versioning-branch",
-  "version": "1.0.1-dev.6",
+  "version": "1.0.1-dev.7",
   "description": "",
   "main": "dist/bin/index.js",
   "types": "dist/types",
