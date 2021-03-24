@@ -36,7 +36,8 @@ async function main(): Promise<void> {
         const [owner, repo] = github.context.payload.repository.full_name.split('/');
         const baseBranch = core.getInput('base-branch') || '';
         const versionLevel = core.getInput('version-level') || '';
-        const branchPrefix = core.getInput('version-branch-prefix') || '';
+        const branchPrefix = core.getInput('name-prefix') || '';
+        const customVersion = core.getInput('custom-version') || '';
 
         const preId = core.getInput('pre-id') || '';
         // input validation
@@ -48,11 +49,14 @@ async function main(): Promise<void> {
         }
 
         // validate against semver
+        if (customVersion && !semver.valid(customVersion)) {
+            throw new Error(`Custom version: ${customVersion}, is invalid.`);
+        }
         const basePackageJson: { [key: string]: unknown } = await fetchPackageJson(owner, repo, baseBranch);
         const baseVersion = basePackageJson.version as string;
 
         if (!semver.valid(baseVersion)) {
-            throw new Error(`Base version ${baseVersion} is invalid.`);
+            throw new Error(`Base version: ${baseVersion}, is invalid.`);
         }
 
         let releaseType: semver.ReleaseType;
@@ -73,7 +77,8 @@ async function main(): Promise<void> {
                 break;
         }
 
-        const newVersion = semver.inc(baseVersion, releaseType, false, preId || null);
+        const newVersion =
+            customVersion || semver.inc(baseVersion, releaseType, false, preId || null);
 
         // create a branch reference
         const headBranch = `${branchPrefix}${newVersion}`;
