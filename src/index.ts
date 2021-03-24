@@ -106,7 +106,7 @@ async function main(): Promise<void> {
         const getRefResponse = await octokit.git.getRef({
             owner: owner,
             repo: repo,
-            ref: `refs/${headBranchRef}`
+            ref: headBranchRef // NOTE: must omit 'refs/'
         });
 
         if (getRefResponse.status === StatusCodes.OK) {
