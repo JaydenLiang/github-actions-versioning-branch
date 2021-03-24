@@ -93,20 +93,20 @@ async function main(): Promise<void> {
 
         // create a branch reference
         const headBranch = `${branchPrefix}${newVersion}`;
-        const headBranchRef = `refs/heads/${headBranch}`;
+        const headBranchRef = `heads/${headBranch}`;
         console.log('Creating a reference: ', headBranchRef);
         // get the head commit of the base branch in order to create a new branch on it
         const getCommitResponse = await octokit.repos.getCommit({
             owner: owner,
             repo: repo,
-            ref: `refs/heads/${baseBranch}`
+            ref: `refs/${headBranchRef}`
         });
         console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
         // check if branch already exists
         const getRefResponse = await octokit.git.getRef({
             owner: owner,
             repo: repo,
-            ref: headBranchRef
+            ref: `refs/${headBranchRef}`
         });
 
         if (getRefResponse.status === StatusCodes.OK) {
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
             const createRefResponse = await octokit.git.createRef({
                 owner: owner,
                 repo: repo,
-                ref: headBranchRef,
+                ref: `refs/${headBranchRef}`,
                 sha: getCommitResponse.data.sha
             });
             console.log(`branch: ${headBranch}, created.`);
