@@ -116,7 +116,7 @@ async function main(): Promise<void> {
             const createRefResponse = await octokit.git.createRef({
                 owner: owner,
                 repo: repo,
-                ref: `refs/${headBranchRef}`,
+                ref: `refs/${headBranchRef}`, // NOTE: must include 'refs/'
                 sha: getCommitResponse.data.sha
             });
             console.log(`branch: ${headBranch}, created.`);
