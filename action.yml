@@ -5,32 +5,45 @@ inputs:
     description: >-
       The GitHub token to authorize actions on behalf of users.
     required: true
-  version-type:
+  base-branch:
     description: >-
-      The type of the semver version. Accepted inputs: major, minor, patch.
+      The base branch that a versioning branch will be based.
     required: true
-    default: patch
-  prerelease:
+    default: main
+  name-prefix:
     description: >-
-      A boolean indicator for creating a prerelease. GitHub 'pre-release' flag will also be set
-      accordingly. Accepted inputs: true, false.
-    required: false
-    default: 'false'
-  pre-id:
-    description: >-
-      A valid semver pre-release id to bump version to a pre-release version with the specific id.
-    required: false
-  version-branch-prefix:
-    description: >-
-      The prefix for the version branch name so the branch name will become
-      <prefix><version>. e.g. rel_1.0.0-candidate.1
+      The name prefix to include in the new branch name.
+      The new branch name format is: <prefix><version>. Example: Rel_branchv1.0.0-rc.1
     required: true
     default: rel_
+  version-level:
+    description: >-
+      The level of the semver version.
+      Accepted inputs: major, minor, patch, and prerelease.
+    required: true
+    default: patch
+  pre-id:
+    description: >-
+      A valid semver pre-release id to bump version as a pre-release.
+      If specified, the versioning behavior will become
+      'premajor', 'preminor', 'prepatch', and 'prerelease'.
+      GitHub 'pre-release' flag will also be set accordingly.
+    required: false
+  custom-version:
+    description: >-
+      The custom version to bump to.
+      If specified, it will be used instead of the other versioning parameters.
+      It must be a valid semver format.
+    required: false
 outputs:
-  version-tag:
-    description: The new version tag.
-  branch-name:
-    description: A boolean indicator for the intension for the GitHub release 'prerelease' flag.
+  base-branch:
+    description: The branch that a versioning branch is based.
+  base-version:
+    description: The version found in the base branch.
+  head-branch:
+    description: The versioning branch.
+  head-version:
+    description: The version tag used for the versioning branch.
 runs:
   using: 'node12'
   main: 'dist/bin/index.js'
