@@ -37,9 +37,14 @@ async function main(): Promise<void> {
         const baseBranch = core.getInput('base-branch') || '';
         const versionLevel = core.getInput('version-level') || '';
         const branchPrefix = core.getInput('name-prefix') || '';
+        const preId = core.getInput('pre-id') || '';
         const customVersion = core.getInput('custom-version') || '';
 
-        const preId = core.getInput('pre-id') || '';
+        console.log('base-branch:', baseBranch);
+        console.log('version-level:', versionLevel);
+        console.log('name-prefix:', branchPrefix);
+        console.log('pre-id:', preId);
+        console.log('custom-version:', customVersion);
         // input validation
         if (!baseBranch) {
             throw new Error('Must provide base branch.');
@@ -77,8 +82,12 @@ async function main(): Promise<void> {
                 break;
         }
 
+        console.log('release type: ', releaseType);
+
         const newVersion =
             customVersion || semver.inc(baseVersion, releaseType, false, preId || null);
+
+        console.log('new version: ', newVersion);
 
         // create a branch reference
         const headBranch = `${branchPrefix}${newVersion}`;
