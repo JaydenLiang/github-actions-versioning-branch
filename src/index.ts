@@ -54,6 +54,17 @@ async function main(): Promise<void> {
             throw new Error(`Invalid version-level: ${versionLevel}`);
         }
 
+        // validate base branch (existing or not)
+        const getBaseRefResponse = await octokit.git.getRef({
+            owner: owner,
+            repo: repo,
+            ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
+        });
+
+        if (getBaseRefResponse.status === StatusCodes.NOT_FOUND) {
+            throw new Error(`Base: ${baseBranch}, not found.`);
+        }
+
         // validate against semver
         if (customVersion && !semver.valid(customVersion)) {
             throw new Error(`Custom version: ${customVersion}, is invalid.`);
@@ -93,36 +104,35 @@ async function main(): Promise<void> {
 
         // create a branch reference
         const headBranch = `${branchPrefix}${newVersion}`;
-        const headBranchRef = `heads/${headBranch}`;
-        console.log('Creating a reference: ', headBranchRef);
+        console.log('Creating a reference: ', `heads/${headBranch}`);
         // get the head commit of the base branch in order to create a new branch on it
         const getCommitResponse = await octokit.repos.getCommit({
             owner: owner,
             repo: repo,
-            ref: `refs/${headBranchRef}`
+            ref: `refs/heads/${baseBranch}` // NOTE: must include 'refs/'
         });
         console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
         // check if branch already exists
-        const getRefResponse = await octokit.git.getRef({
+        const getHeadRefResponse = await octokit.git.getRef({
             owner: owner,
             repo: repo,
-            ref: headBranchRef // NOTE: must omit 'refs/'
+            ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
         });
 
-        if (getRefResponse.status === StatusCodes.OK) {
+        if (getHeadRefResponse.status === StatusCodes.OK) {
             console.log(`branch: ${headBranch}, already exists.`);
-        } else if (getRefResponse.status === StatusCodes.NOT_FOUND) {
+        } else if (getHeadRefResponse.status === StatusCodes.NOT_FOUND) {
             // create a branch ref on this commit
             const createRefResponse = await octokit.git.createRef({
                 owner: owner,
                 repo: repo,
-                ref: `refs/${headBranchRef}`, // NOTE: must include 'refs/'
+                ref: `refs/heads/${headBranch}`, // NOTE: must include 'refs/'
                 sha: getCommitResponse.data.sha
             });
             console.log(`branch: ${headBranch}, created.`);
             console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
         } else {
-            throw new Error(`Unhandled status: ${getRefResponse.status},` +
+            throw new Error(`Unhandled status: ${getHeadRefResponse.status},` +
                 ` in attempting to get ref for branch: ${headBranch}.`);
         }
 
