@@ -35,17 +35,16 @@ async function main(): Promise<void> {
         const octokit = initOctokit();
         const [owner, repo] = github.context.payload.repository.full_name.split('/');
         const baseBranch = core.getInput('base-branch') || '';
-        const versionType = core.getInput('version-type') || '';
+        const versionLevel = core.getInput('version-level') || '';
         const branchPrefix = core.getInput('version-branch-prefix') || '';
-        const prerelease = core.getInput('prerelease') === 'true';
 
         const preId = core.getInput('pre-id') || '';
         // input validation
         if (!baseBranch) {
             throw new Error('Must provide base branch.');
         }
-        if (!['major', 'minor', 'patch', 'prerelease'].includes(versionType)) {
-            throw new Error(`Invalid version-type: ${versionType}`);
+        if (!['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
+            throw new Error(`Invalid version-level: ${versionLevel}`);
         }
 
         // validate against semver
@@ -58,18 +57,19 @@ async function main(): Promise<void> {
 
         let releaseType: semver.ReleaseType;
 
-        switch (versionType) {
+        switch (versionLevel) {
+            case 'prerelease':
+                releaseType = 'prerelease';
+                break;
             case 'major':
-                releaseType = prerelease ? 'premajor' : 'major';
+                releaseType = preId ? 'premajor' : 'major';
                 break;
             case 'minor':
-                releaseType = prerelease ? 'preminor' : 'minor';
+                releaseType = preId ? 'preminor' : 'minor';
                 break;
-            case 'major':
-                releaseType = prerelease ? 'prepatch' : 'patch';
-                break;
+            case 'patch':
             default:
-                releaseType = 'prerelease';
+                releaseType = preId ? 'prepatch' : 'patch';
                 break;
         }
 

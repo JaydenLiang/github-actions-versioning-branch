@@ -12719,16 +12719,15 @@ async function main() {
         const octokit = initOctokit();
         const [owner, repo] = github.context.payload.repository.full_name.split('/');
         const baseBranch = core.getInput('base-branch') || '';
-        const versionType = core.getInput('version-type') || '';
+        const versionLevel = core.getInput('version-level') || '';
         const branchPrefix = core.getInput('version-branch-prefix') || '';
-        const prerelease = core.getInput('prerelease') === 'true';
         const preId = core.getInput('pre-id') || '';
         // input validation
         if (!baseBranch) {
             throw new Error('Must provide base branch.');
         }
-        if (!['major', 'minor', 'patch', 'prerelease'].includes(versionType)) {
-            throw new Error(`Invalid version-type: ${versionType}`);
+        if (!['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
+            throw new Error(`Invalid version-level: ${versionLevel}`);
         }
         // validate against semver
         const basePackageJson = await fetchPackageJson(owner, repo, baseBranch);
@@ -12737,18 +12736,19 @@ async function main() {
             throw new Error(`Base version ${baseVersion} is invalid.`);
         }
         let releaseType;
-        switch (versionType) {
+        switch (versionLevel) {
+            case 'prerelease':
+                releaseType = 'prerelease';
+                break;
             case 'major':
-                releaseType = prerelease ? 'premajor' : 'major';
+                releaseType = preId ? 'premajor' : 'major';
                 break;
             case 'minor':
-                releaseType = prerelease ? 'preminor' : 'minor';
+                releaseType = preId ? 'preminor' : 'minor';
                 break;
-            case 'major':
-                releaseType = prerelease ? 'prepatch' : 'patch';
-                break;
+            case 'patch':
             default:
-                releaseType = 'prerelease';
+                releaseType = preId ? 'prepatch' : 'patch';
                 break;
         }
         const newVersion = semver_1.default.inc(baseVersion, releaseType, false, preId || null);
@@ -12800,7 +12800,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.0\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
+module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.1\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
 
 /***/ }),
 
