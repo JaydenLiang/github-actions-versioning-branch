@@ -4,6 +4,13 @@ import axios, { AxiosRequestConfig } from 'axios';
 import StatusCodes from 'http-status-codes';
 import semver from 'semver';
 
+// the interface for the error octokit will throw. @actions/github doesn' export it for use.
+interface RequestError {
+    status: number;
+    message?: string;
+    [key: string]: unknown;
+}
+
 async function fetchPackageJson(owner: string, repo: string, branch: string): Promise<{ [key: string]: unknown }> {
     const basePackageJsonUrl = `https://raw.githubusercontent.com/` +
         `${owner}/${repo}/${branch}/package.json`;
@@ -55,14 +62,19 @@ async function main(): Promise<void> {
         }
 
         // validate base branch (existing or not)
-        const getBaseRefResponse = await octokit.git.getRef({
-            owner: owner,
-            repo: repo,
-            ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
-        });
-
-        if (getBaseRefResponse.status === StatusCodes.NOT_FOUND) {
-            throw new Error(`Base: ${baseBranch}, not found.`);
+        try {
+            await octokit.git.getRef({
+                owner: owner,
+                repo: repo,
+                ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
+            });
+        } catch (error) {
+            if ((error as RequestError).status === StatusCodes.NOT_FOUND) {
+                throw new Error(`Base: ${baseBranch}, not found.`);
+            } else {
+                console.log(`Unknown error occurred when attempting to get ref: heads/${baseBranch}`);
+                throw error;
+            }
         }
 
         // validate against semver
@@ -113,15 +125,26 @@ async function main(): Promise<void> {
         });
         console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
         // check if branch already exists
-        const getHeadRefResponse = await octokit.git.getRef({
-            owner: owner,
-            repo: repo,
-            ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
-        });
+        let headRefExists: boolean;
+        try {
+            await octokit.git.getRef({
+                owner: owner,
+                repo: repo,
+                ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
+            });
+            headRefExists = true;
+        } catch (error) {
+            if ((error as RequestError).status === StatusCodes.NOT_FOUND) {
+                headRefExists = false;
+            } else {
+                console.log(`Unknown error occurred when attempting to get ref: heads/${headBranch}`);
+                throw error;
+            }
+        }
 
-        if (getHeadRefResponse.status === StatusCodes.OK) {
+        if (headRefExists) {
             console.log(`branch: ${headBranch}, already exists.`);
-        } else if (getHeadRefResponse.status === StatusCodes.NOT_FOUND) {
+        } else {
             // create a branch ref on this commit
             const createRefResponse = await octokit.git.createRef({
                 owner: owner,
@@ -131,9 +154,6 @@ async function main(): Promise<void> {
             });
             console.log(`branch: ${headBranch}, created.`);
             console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
-        } else {
-            throw new Error(`Unhandled status: ${getHeadRefResponse.status},` +
-                ` in attempting to get ref for branch: ${headBranch}.`);
         }
 
         core.setOutput('base-branch', baseBranch);
@@ -146,7 +166,7 @@ async function main(): Promise<void> {
         console.log('payload:', payload);
     } catch (error) {
         console.warn(error);
-        core.setFailed((error as Error).message);
+        core.setFailed((error as RequestError).message);
     }
 }
 

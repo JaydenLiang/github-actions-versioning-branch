@@ -14004,13 +14004,21 @@ async function main() {
             throw new Error(`Invalid version-level: ${versionLevel}`);
         }
         // validate base branch (existing or not)
-        const getBaseRefResponse = await octokit.git.getRef({
-            owner: owner,
-            repo: repo,
-            ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
-        });
-        if (getBaseRefResponse.status === http_status_codes_1.default.NOT_FOUND) {
-            throw new Error(`Base: ${baseBranch}, not found.`);
+        try {
+            await octokit.git.getRef({
+                owner: owner,
+                repo: repo,
+                ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
+            });
+        }
+        catch (error) {
+            if (error.status === http_status_codes_1.default.NOT_FOUND) {
+                throw new Error(`Base: ${baseBranch}, not found.`);
+            }
+            else {
+                console.log(`Unknown error occurred when attempting to get ref: heads/${baseBranch}`);
+                throw error;
+            }
         }
         // validate against semver
         if (customVersion && !semver_1.default.valid(customVersion)) {
@@ -14052,15 +14060,28 @@ async function main() {
         });
         console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
         // check if branch already exists
-        const getHeadRefResponse = await octokit.git.getRef({
-            owner: owner,
-            repo: repo,
-            ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
-        });
-        if (getHeadRefResponse.status === http_status_codes_1.default.OK) {
+        let headRefExists;
+        try {
+            await octokit.git.getRef({
+                owner: owner,
+                repo: repo,
+                ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
+            });
+            headRefExists = true;
+        }
+        catch (error) {
+            if (error.status === http_status_codes_1.default.NOT_FOUND) {
+                headRefExists = false;
+            }
+            else {
+                console.log(`Unknown error occurred when attempting to get ref: heads/${headBranch}`);
+                throw error;
+            }
+        }
+        if (headRefExists) {
             console.log(`branch: ${headBranch}, already exists.`);
         }
-        else if (getHeadRefResponse.status === http_status_codes_1.default.NOT_FOUND) {
+        else {
             // create a branch ref on this commit
             const createRefResponse = await octokit.git.createRef({
                 owner: owner,
@@ -14070,10 +14091,6 @@ async function main() {
             });
             console.log(`branch: ${headBranch}, created.`);
             console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
-        }
-        else {
-            throw new Error(`Unhandled status: ${getHeadRefResponse.status},` +
-                ` in attempting to get ref for branch: ${headBranch}.`);
         }
         core.setOutput('base-branch', baseBranch);
         core.setOutput('base-version', baseVersion);
@@ -14106,7 +14123,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.10\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
+module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.11\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
 
 /***/ }),
 
