@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import axios, { AxiosRequestConfig } from 'axios';
+import StatusCodes from 'http-status-codes';
 import semver from 'semver';
 
 async function fetchPackageJson(owner: string, repo: string, branch: string): Promise<{ [key: string]: unknown }> {
@@ -101,14 +102,29 @@ async function main(): Promise<void> {
             ref: `refs/heads/${baseBranch}`
         });
         console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
-        // create a branch ref on this commit
-        const createRefResponse = await octokit.git.createRef({
+        // check if branch already exists
+        const getRefResponse = await octokit.git.getRef({
             owner: owner,
             repo: repo,
-            ref: headBranchRef,
-            sha: getCommitResponse.data.sha
+            ref: headBranchRef
         });
-        console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
+
+        if (getRefResponse.status === StatusCodes.OK) {
+            console.log(`branch: ${headBranch}, already exists.`);
+        } else if (getRefResponse.status === StatusCodes.NOT_FOUND) {
+            // create a branch ref on this commit
+            const createRefResponse = await octokit.git.createRef({
+                owner: owner,
+                repo: repo,
+                ref: headBranchRef,
+                sha: getCommitResponse.data.sha
+            });
+            console.log(`branch: ${headBranch}, created.`);
+            console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
+        } else {
+            throw new Error(`Unhandled status: ${getRefResponse.status},` +
+                ` in attempting to get ref for branch: ${headBranch}.`);
+        }
 
         core.setOutput('base-branch', baseBranch);
         core.setOutput('base-version', baseVersion);
