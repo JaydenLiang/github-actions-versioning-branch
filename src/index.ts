@@ -205,8 +205,10 @@ async function main(): Promise<void> {
         console.log('payload:', payload);
         const prNumber: number = Number(core.getInput('pr-number'));
         if (isNaN(prNumber)) {
+            console.log('pull request number not provided.');
             await createVersioningBranch();
         } else {
+            console.log(`pull request number: ${prNumber}, found.`);
             await extractInfoFromPullRequest(prNumber);
         }
     } catch (error) {
