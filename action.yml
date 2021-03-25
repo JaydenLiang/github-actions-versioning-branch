@@ -9,7 +9,6 @@ inputs:
     description: >-
       The base branch that a versioning branch will be based.
     required: false
-    default: main
   name-prefix:
     description: >-
       The name prefix to include in the new branch name.
