@@ -203,7 +203,7 @@ async function main(): Promise<void> {
         // Get the JSON webhook payload for the event that triggered the workflow
         const payload = JSON.stringify(github.context.payload, null, 4);
         console.log('payload:', payload);
-        const prNumber: number = Number(core.getInput('pr-number'));
+        const prNumber: number = core.getInput('pr-number') && Number(core.getInput('pr-number')) || NaN;
         if (isNaN(prNumber)) {
             console.log('pull request number not provided.');
             await createVersioningBranch();
