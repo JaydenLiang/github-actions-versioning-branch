@@ -8,20 +8,19 @@ inputs:
   base-branch:
     description: >-
       The base branch that a versioning branch will be based.
-    required: true
+    required: false
     default: main
   name-prefix:
     description: >-
       The name prefix to include in the new branch name.
       The new branch name format is: <prefix><version>. Example: Rel_branchv1.0.0-rc.1
-    required: true
+    required: false
     default: rel_
   version-level:
     description: >-
       The level of the semver version.
       Accepted inputs: major, minor, patch, and prerelease.
-    required: true
-    default: patch
+    required: false
   pre-id:
     description: >-
       A valid semver pre-release id to bump version as a pre-release.
@@ -34,6 +33,13 @@ inputs:
       The custom version to bump to.
       If specified, it will be used instead of the other versioning parameters.
       It must be a valid semver format.
+    required: false
+  pr-number:
+    description: >-
+      The pull request number of the pull request from which information will be extracted
+      in order to carry out the post-merged actions for a versioning branch. If this parameter
+      is present, this action will only attempt to extract information from the given pull requst
+      instead. It no longer creates a versioning branch using the other parameters.
     required: false
 outputs:
   base-branch:

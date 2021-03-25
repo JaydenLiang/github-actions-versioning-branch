@@ -13982,124 +13982,156 @@ function initOctokit() {
     const octokit = github.getOctokit(token);
     return octokit;
 }
-async function main() {
+async function createVersioningBranch() {
+    const octokit = initOctokit();
+    const [owner, repo] = github.context.payload.repository.full_name.split('/');
+    const baseBranch = core.getInput('base-branch') || '';
+    const versionLevel = core.getInput('version-level') || '';
+    const branchPrefix = core.getInput('name-prefix') || '';
+    const preId = core.getInput('pre-id') || '';
+    const customVersion = core.getInput('custom-version') || '';
+    console.log('base-branch:', baseBranch);
+    console.log('version-level:', versionLevel);
+    console.log('name-prefix:', branchPrefix);
+    console.log('pre-id:', preId);
+    console.log('custom-version:', customVersion);
+    // input validation
+    if (!baseBranch) {
+        throw new Error('Must provide base branch.');
+    }
+    if (!['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
+        throw new Error(`Invalid version-level: ${versionLevel}`);
+    }
+    // validate base branch (existing or not)
     try {
-        const octokit = initOctokit();
-        const [owner, repo] = github.context.payload.repository.full_name.split('/');
-        const baseBranch = core.getInput('base-branch') || '';
-        const versionLevel = core.getInput('version-level') || '';
-        const branchPrefix = core.getInput('name-prefix') || '';
-        const preId = core.getInput('pre-id') || '';
-        const customVersion = core.getInput('custom-version') || '';
-        console.log('base-branch:', baseBranch);
-        console.log('version-level:', versionLevel);
-        console.log('name-prefix:', branchPrefix);
-        console.log('pre-id:', preId);
-        console.log('custom-version:', customVersion);
-        // input validation
-        if (!baseBranch) {
-            throw new Error('Must provide base branch.');
-        }
-        if (!['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
-            throw new Error(`Invalid version-level: ${versionLevel}`);
-        }
-        // validate base branch (existing or not)
-        try {
-            await octokit.git.getRef({
-                owner: owner,
-                repo: repo,
-                ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
-            });
-        }
-        catch (error) {
-            if (error.status === http_status_codes_1.default.NOT_FOUND) {
-                throw new Error(`Base: ${baseBranch}, not found.`);
-            }
-            else {
-                console.log(`Unknown error occurred when attempting to get ref: heads/${baseBranch}`);
-                throw error;
-            }
-        }
-        // validate against semver
-        if (customVersion && !semver_1.default.valid(customVersion)) {
-            throw new Error(`Custom version: ${customVersion}, is invalid.`);
-        }
-        const basePackageJson = await fetchPackageJson(owner, repo, baseBranch);
-        const baseVersion = basePackageJson.version;
-        if (!semver_1.default.valid(baseVersion)) {
-            throw new Error(`Base version: ${baseVersion}, is invalid.`);
-        }
-        const isPrerelease = versionLevel === 'prerelease' || !!preId;
-        let releaseType;
-        switch (versionLevel) {
-            case 'prerelease':
-                releaseType = 'prerelease';
-                break;
-            case 'major':
-                releaseType = preId ? 'premajor' : 'major';
-                break;
-            case 'minor':
-                releaseType = preId ? 'preminor' : 'minor';
-                break;
-            case 'patch':
-            default:
-                releaseType = preId ? 'prepatch' : 'patch';
-                break;
-        }
-        console.log('release type: ', releaseType);
-        const newVersion = customVersion || semver_1.default.inc(baseVersion, releaseType, false, preId || null);
-        console.log('new version: ', newVersion);
-        // create a branch reference
-        const headBranch = `${branchPrefix}${newVersion}`;
-        console.log('Creating a reference: ', `heads/${headBranch}`);
-        // get the head commit of the base branch in order to create a new branch on it
-        const getCommitResponse = await octokit.repos.getCommit({
+        await octokit.git.getRef({
             owner: owner,
             repo: repo,
-            ref: `refs/heads/${baseBranch}` // NOTE: must include 'refs/'
+            ref: `heads/${baseBranch}` // NOTE: must omit 'refs/'
         });
-        console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
-        // check if branch already exists
-        let headRefExists;
-        try {
-            await octokit.git.getRef({
-                owner: owner,
-                repo: repo,
-                ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
-            });
-            headRefExists = true;
-        }
-        catch (error) {
-            if (error.status === http_status_codes_1.default.NOT_FOUND) {
-                headRefExists = false;
-            }
-            else {
-                console.log(`Unknown error occurred when attempting to get ref: heads/${headBranch}`);
-                throw error;
-            }
-        }
-        if (headRefExists) {
-            console.log(`branch: ${headBranch}, already exists.`);
+    }
+    catch (error) {
+        if (error.status === http_status_codes_1.default.NOT_FOUND) {
+            throw new Error(`Base: ${baseBranch}, not found.`);
         }
         else {
-            // create a branch ref on this commit
-            const createRefResponse = await octokit.git.createRef({
-                owner: owner,
-                repo: repo,
-                ref: `refs/heads/${headBranch}`,
-                sha: getCommitResponse.data.sha
-            });
-            console.log(`branch: ${headBranch}, created.`);
-            console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
+            console.log(`Unknown error occurred when attempting to get ref: heads/${baseBranch}`);
+            throw error;
         }
-        core.setOutput('base-branch', baseBranch);
-        core.setOutput('base-version', baseVersion);
-        core.setOutput('head-branch', headBranch);
-        core.setOutput('head-version', newVersion);
-        core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
+    }
+    // validate against semver
+    if (customVersion && !semver_1.default.valid(customVersion)) {
+        throw new Error(`Custom version: ${customVersion}, is invalid.`);
+    }
+    const basePackageJson = await fetchPackageJson(owner, repo, baseBranch);
+    const baseVersion = basePackageJson.version;
+    if (!semver_1.default.valid(baseVersion)) {
+        throw new Error(`Base version: ${baseVersion}, is invalid.`);
+    }
+    const isPrerelease = versionLevel === 'prerelease' || !!preId;
+    let releaseType;
+    switch (versionLevel) {
+        case 'prerelease':
+            releaseType = 'prerelease';
+            break;
+        case 'major':
+            releaseType = preId ? 'premajor' : 'major';
+            break;
+        case 'minor':
+            releaseType = preId ? 'preminor' : 'minor';
+            break;
+        case 'patch':
+        default:
+            releaseType = preId ? 'prepatch' : 'patch';
+            break;
+    }
+    console.log('release type: ', releaseType);
+    const newVersion = customVersion || semver_1.default.inc(baseVersion, releaseType, false, preId || null);
+    console.log('new version: ', newVersion);
+    // create a branch reference
+    const headBranch = `${branchPrefix}${newVersion}`;
+    console.log('Creating a reference: ', `heads/${headBranch}`);
+    // get the head commit of the base branch in order to create a new branch on it
+    const getCommitResponse = await octokit.repos.getCommit({
+        owner: owner,
+        repo: repo,
+        ref: `refs/heads/${baseBranch}` // NOTE: must include 'refs/'
+    });
+    console.log('get commit result: ', JSON.stringify(getCommitResponse, null, 4));
+    // check if branch already exists
+    let headRefExists;
+    try {
+        await octokit.git.getRef({
+            owner: owner,
+            repo: repo,
+            ref: `heads/${headBranch}` // NOTE: must omit 'refs/'
+        });
+        headRefExists = true;
+    }
+    catch (error) {
+        if (error.status === http_status_codes_1.default.NOT_FOUND) {
+            headRefExists = false;
+        }
+        else {
+            console.log(`Unknown error occurred when attempting to get ref: heads/${headBranch}`);
+            throw error;
+        }
+    }
+    if (headRefExists) {
+        console.log(`branch: ${headBranch}, already exists.`);
+    }
+    else {
+        // create a branch ref on this commit
+        const createRefResponse = await octokit.git.createRef({
+            owner: owner,
+            repo: repo,
+            ref: `refs/heads/${headBranch}`,
+            sha: getCommitResponse.data.sha
+        });
+        console.log(`branch: ${headBranch}, created.`);
+        console.log('create ref result: ', JSON.stringify(createRefResponse, null, 4));
+    }
+    core.setOutput('base-branch', baseBranch);
+    core.setOutput('base-version', baseVersion);
+    core.setOutput('head-branch', headBranch);
+    core.setOutput('head-version', newVersion);
+    core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
+}
+async function extractInfoFromPullRequest(prNumber) {
+    const octokit = initOctokit();
+    const [owner, repo] = github.context.payload.repository.full_name.split('/');
+    // NOTE: if pullrequest not found or other errors, stop processing.
+    const pullrequest = await octokit.pulls.get({
+        owner: owner,
+        repo: repo,
+        pull_number: prNumber,
+    });
+    const baseBranch = pullrequest.data.base.ref;
+    const headBranch = pullrequest.data.head.ref;
+    const basePackageJson = await fetchPackageJson(owner, repo, baseBranch);
+    const baseVersion = basePackageJson.version;
+    const headPackageJson = await fetchPackageJson(owner, repo, headBranch);
+    const headVersion = headPackageJson.version;
+    const headSemver = semver_1.default.parse(headVersion);
+    const isPrerelease = headSemver.prerelease.length > 0;
+    core.setOutput('base-branch', baseBranch);
+    core.setOutput('base-version', baseVersion);
+    core.setOutput('head-branch', headBranch);
+    core.setOutput('head-version', headVersion);
+    core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
+}
+async function main() {
+    try {
         // Get the JSON webhook payload for the event that triggered the workflow
         const payload = JSON.stringify(github.context.payload, null, 4);
         console.log('payload:', payload);
+        const prNumber = Number(core.getInput('pr-number'));
+        if (isNaN(prNumber)) {
+            await createVersioningBranch();
+        }
+        else {
+            await extractInfoFromPullRequest(prNumber);
+        }
     }
     catch (error) {
         console.warn(error);
@@ -14123,7 +14155,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.11\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
+module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.1-dev.12\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
 
 /***/ }),
 
