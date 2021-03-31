@@ -13,6 +13,7 @@ inputs:
     description: >-
       The name prefix to include in the new branch name.
       The new branch name format is: <prefix><version>. Example: Rel_branchv1.0.0-rc.1
+      The version will be retrieved from the base-branch, bumped according to the version-level.
     required: false
     default: rel_
   version-level:
@@ -49,6 +50,8 @@ outputs:
     description: The versioning branch.
   head-version:
     description: The version tag used for the versioning branch.
+  is-new-branch:
+    description: A boolean indicator for whether the head branch a new branch or existing one.
   is-prerelease:
     description: A boolean indicator for whether the version is considered as a prerelease or not.
 runs:

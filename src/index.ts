@@ -165,6 +165,7 @@ async function createVersioningBranch(): Promise<void> {
     core.setOutput('base-version', baseVersion);
     core.setOutput('head-branch', headBranch);
     core.setOutput('head-version', newVersion);
+    core.setOutput('is-new-branch', headRefExists && 'false' || 'true');
     core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
 }
 
