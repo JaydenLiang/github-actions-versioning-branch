@@ -8,7 +8,8 @@
     "bundle": "shx rm -rf dist/bin && ncc build out/index.js -so dist/bin",
     "compile": "shx rm -rf out && shx rm -rf dist/types && tsc",
     "make-dist": "npm run compile && npm run bundle",
-    "test": "echo \"No test specified.\" && exit 0"
+    "test": "echo \"No test specified.\" && exit 0",
+    "version": "npm run make-dist && git add ."
   },
   "repository": {
     "type": "git",
