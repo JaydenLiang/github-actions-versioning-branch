@@ -62,7 +62,7 @@ async function createVersioningBranch(): Promise<void> {
     if (!baseBranch) {
         throw new Error('Must provide base branch.');
     }
-    if (!['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
+    if (!customVersion && !['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
         throw new Error(`Invalid version-level: ${versionLevel}`);
     }
 
@@ -96,23 +96,26 @@ async function createVersioningBranch(): Promise<void> {
     const isPrerelease = versionLevel === 'prerelease' || !!preId;
     let releaseType: semver.ReleaseType;
 
-    switch (versionLevel) {
-        case 'prerelease':
-            releaseType = 'prerelease';
-            break;
-        case 'major':
-            releaseType = preId ? 'premajor' : 'major';
-            break;
-        case 'minor':
-            releaseType = preId ? 'preminor' : 'minor';
-            break;
-        case 'patch':
-        default:
-            releaseType = preId ? 'prepatch' : 'patch';
-            break;
+    if (customVersion) {
+        console.log('release type: custom');
+    } else {
+        switch (versionLevel) {
+            case 'prerelease':
+                releaseType = 'prerelease';
+                break;
+            case 'major':
+                releaseType = preId ? 'premajor' : 'major';
+                break;
+            case 'minor':
+                releaseType = preId ? 'preminor' : 'minor';
+                break;
+            case 'patch':
+            default:
+                releaseType = preId ? 'prepatch' : 'patch';
+                break;
+        }
+        console.log('release type: ', releaseType);
     }
-
-    console.log('release type: ', releaseType);
 
     const newVersion =
         customVersion || semver.inc(baseVersion, releaseType, false, preId || null);
