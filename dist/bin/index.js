@@ -13988,14 +13988,16 @@ async function createVersioningBranch() {
     const baseBranch = core.getInput('base-branch') || '';
     const versionLevel = core.getInput('version-level') || '';
     const branchPrefix = core.getInput('name-prefix') || '';
-    const preId = core.getInput('pre-id') || '';
+    let preId = core.getInput('pre-id') || '';
     const customVersion = core.getInput('custom-version') || '';
     console.log('inputs:');
+    console.log('----------');
     console.log('base-branch:', baseBranch);
     console.log('version-level:', versionLevel);
     console.log('name-prefix:', branchPrefix);
     console.log('pre-id:', preId);
     console.log('custom-version:', customVersion);
+    console.log('----------');
     // input validation
     if (!baseBranch) {
         throw new Error('Must provide base branch.');
@@ -14003,6 +14005,12 @@ async function createVersioningBranch() {
     if (!customVersion && !['major', 'minor', 'patch', 'prerelease'].includes(versionLevel)) {
         throw new Error(`Invalid version-level: ${versionLevel}`);
     }
+    // validate custom version against semver
+    if (customVersion && !semver_1.default.valid(customVersion)) {
+        throw new Error(`Custom version: ${customVersion}, is invalid.`);
+    }
+    let releaseType;
+    let headVersion;
     // validate base branch (existing or not)
     try {
         await octokit.git.getRef({
@@ -14020,18 +14028,14 @@ async function createVersioningBranch() {
             throw error;
         }
     }
-    // validate against semver
-    if (customVersion && !semver_1.default.valid(customVersion)) {
-        throw new Error(`Custom version: ${customVersion}, is invalid.`);
-    }
     const basePackageJson = await fetchPackageJson(owner, repo, baseBranch);
     const baseVersion = basePackageJson.version;
     if (!semver_1.default.valid(baseVersion)) {
         throw new Error(`Base version: ${baseVersion}, is invalid.`);
     }
-    let releaseType;
     if (customVersion) {
         console.log('release type: custom');
+        headVersion = semver_1.default.parse(customVersion);
     }
     else {
         switch (versionLevel) {
@@ -14050,15 +14054,21 @@ async function createVersioningBranch() {
                 break;
         }
         console.log('release type: ', releaseType);
+        headVersion = semver_1.default.parse(semver_1.default.inc(baseVersion, releaseType, false, preId || null));
     }
-    const newVersion = customVersion || semver_1.default.inc(baseVersion, releaseType, false, preId || null);
-    console.log('new version: ', newVersion);
-    const prereleaseComponents = semver_1.default.prerelease(newVersion) || [];
-    const isPrerelease = !!prereleaseComponents[0];
+    console.log('head version: ', headVersion.version);
+    let prereleaseComponents = Array.from(semver_1.default.prerelease(headVersion)) || [];
+    const isPrerelease = prereleaseComponents.length > 0;
     console.log('is prerelease: ', isPrerelease);
     console.log('prerelease components: ', ...prereleaseComponents);
+    let preInc = ''; // the incremental part of the prerelease component.
+    if (isPrerelease) {
+        // preid could be a string, a pure number, or a combination of both.
+        preInc = prereleaseComponents.pop();
+        preId = prereleaseComponents.join('.');
+    }
     // create a branch reference
-    const headBranch = `${branchPrefix}${newVersion}`;
+    const headBranch = `${branchPrefix}${headVersion}`;
     console.log('Creating a reference: ', `heads/${headBranch}`);
     // get the head commit of the base branch in order to create a new branch on it
     const getCommitResponse = await octokit.repos.getCommit({
@@ -14103,11 +14113,14 @@ async function createVersioningBranch() {
     core.setOutput('base-branch', baseBranch);
     core.setOutput('base-version', baseVersion);
     core.setOutput('head-branch', headBranch);
-    core.setOutput('head-version', newVersion);
+    core.setOutput('head-version', headVersion);
     core.setOutput('is-new-branch', headRefExists && 'false' || 'true');
     core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
-    core.setOutput('pre-id', prereleaseComponents.length > 1 && prereleaseComponents[0] || '');
-    core.setOutput('pre-num', prereleaseComponents.length > 1 && prereleaseComponents[1] || '');
+    core.setOutput('major', headVersion.major);
+    core.setOutput('minor', headVersion.minor);
+    core.setOutput('patch', headVersion.patch);
+    core.setOutput('pre-id', preId);
+    core.setOutput('pre-inc', preInc);
 }
 async function extractInfoFromPullRequest(prNumber) {
     const octokit = initOctokit();
@@ -14169,7 +14182,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.4\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\",\"version\":\"npm run make-dist && git add .\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
+module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.5\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\",\"version\":\"npm run make-dist && git add .\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
 
 /***/ }),
 
