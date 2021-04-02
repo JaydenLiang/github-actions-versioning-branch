@@ -93,7 +93,6 @@ async function createVersioningBranch(): Promise<void> {
         throw new Error(`Base version: ${baseVersion}, is invalid.`);
     }
 
-    const isPrerelease = versionLevel === 'prerelease' || !!preId;
     let releaseType: semver.ReleaseType;
 
     if (customVersion) {
@@ -121,6 +120,8 @@ async function createVersioningBranch(): Promise<void> {
         customVersion || semver.inc(baseVersion, releaseType, false, preId || null);
 
     console.log('new version: ', newVersion);
+
+    const isPrerelease = Array.isArray(semver.prerelease(newVersion)) && semver.prerelease(newVersion).length > 0 || false;
 
     // create a branch reference
     const headBranch = `${branchPrefix}${newVersion}`;
