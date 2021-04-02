@@ -53,6 +53,7 @@ async function createVersioningBranch(): Promise<void> {
     const preId = core.getInput('pre-id') || '';
     const customVersion = core.getInput('custom-version') || '';
 
+    console.log('inputs:');
     console.log('base-branch:', baseBranch);
     console.log('version-level:', versionLevel);
     console.log('name-prefix:', branchPrefix);
@@ -121,7 +122,12 @@ async function createVersioningBranch(): Promise<void> {
 
     console.log('new version: ', newVersion);
 
-    const isPrerelease = Array.isArray(semver.prerelease(newVersion)) && semver.prerelease(newVersion).length > 0 || false;
+    const prereleaseComponents = semver.prerelease(newVersion) || [];
+
+    const isPrerelease = !!prereleaseComponents[0];
+
+    console.log('is prerelease: ', isPrerelease);
+    console.log('prerelease components: ', ...prereleaseComponents);
 
     // create a branch reference
     const headBranch = `${branchPrefix}${newVersion}`;
@@ -171,6 +177,8 @@ async function createVersioningBranch(): Promise<void> {
     core.setOutput('head-version', newVersion);
     core.setOutput('is-new-branch', headRefExists && 'false' || 'true');
     core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
+    core.setOutput('pre-id', prereleaseComponents.length > 1 && prereleaseComponents[0] || '');
+    core.setOutput('pre-num', prereleaseComponents.length > 1 && prereleaseComponents[1] || '');
 }
 
 async function extractInfoFromPullRequest(prNumber: number): Promise<void> {
