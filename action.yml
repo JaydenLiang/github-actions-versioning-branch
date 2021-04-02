@@ -23,23 +23,19 @@ inputs:
     required: false
   pre-id:
     description: >-
-      A valid semver pre-release id to bump version as a pre-release.
-      If specified, the versioning behavior will become
-      'premajor', 'preminor', 'prepatch', and 'prerelease'.
-      GitHub 'pre-release' flag will also be set accordingly.
+      A valid semver pre-release identifier. Used in command: npm version --preid=<pre-id>
+      If specified, the versioning behavior will become 'premajor', 'preminor', 'prepatch', and 'prerelease'.
     required: false
   custom-version:
     description: >-
-      The custom version to bump to.
-      If specified, it will be used instead of the other versioning parameters.
-      It must be a valid semver format.
+      The custom version to bump to. If specified, it will be used as the version.
+      It needs to be a valid semver format.
     required: false
   pr-number:
     description: >-
-      The pull request number of the pull request from which information will be extracted
-      in order to carry out the post-merged actions for a versioning branch. If this parameter
-      is present, this action will only attempt to extract information from the given pull requst
-      instead. It no longer creates a versioning branch using the other parameters.
+      The pull request number for info retrieval uses. If present, the information will be returned
+      in the action output, and no new branch will be created as opposed to creating a new branch by
+      default without the pr-number.
     required: false
 outputs:
   base-branch:
@@ -51,9 +47,19 @@ outputs:
   head-version:
     description: The version tag used for the versioning branch.
   is-new-branch:
-    description: A boolean indicator for whether the head branch a new branch or existing one.
+    description: A boolean indicator for whether the head branch is a new branch or not.
   is-prerelease:
-    description: A boolean indicator for whether the version is considered as a prerelease or not.
+    description: A boolean indicator for whether the version is resolved as a prerelease or not.
+  major:
+    description: The major version of the new version.
+  minor:
+    description: The minor version of the new version.
+  patch:
+    description: The patch version of the new version.
+  pre-id:
+    description: The non-incremental part of the prerelese version of the new version.
+  pre-inc:
+    description: The incremental part of the prerelase version of the new version.
 runs:
   using: 'node12'
   main: 'dist/bin/index.js'
