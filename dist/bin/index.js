@@ -14028,7 +14028,6 @@ async function createVersioningBranch() {
     if (!semver_1.default.valid(baseVersion)) {
         throw new Error(`Base version: ${baseVersion}, is invalid.`);
     }
-    const isPrerelease = versionLevel === 'prerelease' || !!preId;
     let releaseType;
     if (customVersion) {
         console.log('release type: custom');
@@ -14053,6 +14052,7 @@ async function createVersioningBranch() {
     }
     const newVersion = customVersion || semver_1.default.inc(baseVersion, releaseType, false, preId || null);
     console.log('new version: ', newVersion);
+    const isPrerelease = Array.isArray(semver_1.default.prerelease(newVersion)) && semver_1.default.prerelease(newVersion).length > 0 || false;
     // create a branch reference
     const headBranch = `${branchPrefix}${newVersion}`;
     console.log('Creating a reference: ', `heads/${headBranch}`);
@@ -14163,7 +14163,7 @@ module.exports = eval("require")("encoding");
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.2\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\",\"version\":\"npm run make-dist && git add .\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
+module.exports = JSON.parse("{\"name\":\"github-actions-versioning-branch\",\"version\":\"1.0.3\",\"description\":\"\",\"main\":\"dist/bin/index.js\",\"types\":\"dist/types\",\"scripts\":{\"bundle\":\"shx rm -rf dist/bin && ncc build out/index.js -so dist/bin\",\"compile\":\"shx rm -rf out && shx rm -rf dist/types && tsc\",\"make-dist\":\"npm run compile && npm run bundle\",\"test\":\"echo \\\"No test specified.\\\" && exit 0\",\"version\":\"npm run make-dist && git add .\"},\"repository\":{\"type\":\"git\",\"url\":\"git+https://github.com/JaydenLiang/github-actions-versioning-branch.git\"},\"keywords\":[],\"author\":\"\",\"license\":\"MIT\",\"bugs\":{\"url\":\"https://github.com/JaydenLiang/github-actions-versioning-branch/issues\"},\"homepage\":\"https://github.com/JaydenLiang/github-actions-versioning-branch#readme\",\"dependencies\":{\"@actions/core\":\"^1.2.6\",\"@actions/github\":\"^4.0.0\",\"@types/node\":\"^14.14.35\",\"axios\":\"^0.21.1\",\"http-status-codes\":\"^2.1.4\",\"semver\":\"^7.3.5\",\"yaml\":\"^1.10.2\"},\"devDependencies\":{\"@types/semver\":\"^7.3.4\",\"@types/yaml\":\"^1.9.7\",\"@vercel/ncc\":\"^0.27.0\",\"eslint\":\"^7.22.0\",\"eslint-config-prettier\":\"^8.1.0\",\"eslint-plugin-prettier\":\"^3.3.1\",\"prettier\":\"^2.2.1\",\"shx\":\"^0.3.3\",\"typescript\":\"^4.2.3\"}}");
 
 /***/ }),
 
