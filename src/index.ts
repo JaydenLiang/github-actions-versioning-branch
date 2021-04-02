@@ -131,14 +131,17 @@ async function createVersioningBranch(): Promise<void> {
     const isPrerelease = prereleaseComponents.length > 0;
 
     console.log('is prerelease: ', isPrerelease);
-    console.log('prerelease components: ', ...prereleaseComponents);
 
     let preInc: string = ''; // the incremental part of the prerelease component.
     if (isPrerelease) {
         // preid could be a string, a pure number, or a combination of both.
+        console.log('prerelease components: ', ...prereleaseComponents);
         preInc = prereleaseComponents.pop();
         preId = prereleaseComponents.join('.');
     }
+
+    console.log('pre-id: ', preId);
+    console.log('pre-inc: ', preInc);
 
     // create a branch reference
     const headBranch = `${branchPrefix}${headVersion}`;
@@ -185,7 +188,7 @@ async function createVersioningBranch(): Promise<void> {
     core.setOutput('base-branch', baseBranch);
     core.setOutput('base-version', baseVersion);
     core.setOutput('head-branch', headBranch);
-    core.setOutput('head-version', headVersion);
+    core.setOutput('head-version', headVersion.version);
     core.setOutput('is-new-branch', headRefExists && 'false' || 'true');
     core.setOutput('is-prerelease', isPrerelease && 'true' || 'false');
     core.setOutput('major', headVersion.major);
